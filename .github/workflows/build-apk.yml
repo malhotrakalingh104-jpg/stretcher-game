@@ -16,19 +16,26 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+
+      - name: Unzip ANY zip
+        run: |
+          unzip -o "*.zip" || true
+          for z in *.zip; do unzip -o "$z" || true; done
+          ls -R | head -100
+
       - name: Find and Build
         run: |
           PROJECT_DIR=$(find . -name "package.json" -type f | head -1 | xargs dirname)
-          echo "Found project at $PROJECT_DIR"
-          cd $PROJECT_DIR
+          echo "Project at: $PROJECT_DIR"
+          cd "$PROJECT_DIR"
           npm install
           npm run build || npx vite build
-          npx cap copy android || true
           npx cap add android || true
           npx cap copy android
           chmod +x android/gradlew
           cd android
           ./gradlew assembleDebug
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
