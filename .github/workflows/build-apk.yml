@@ -1,8 +1,5 @@
 name: Build APK
-on:
-  push:
-  workflow_dispatch:
-
+on: push
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -10,41 +7,22 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 20
       - uses: actions/setup-java@v5
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
-
-      - name: Find and Unzip Game
-        run: |
-          echo "Searching for zip files..."
-          find . -name "*.zip" -type f
-          echo "Unzipping all zips..."
-          find . -name "*.zip" -exec unzip -o {} \;
-          find . -name "*.zip" -exec unzip -o {} -d extracted \; || true
-          unzip -o ".github/workflows/games.zip" -d . || true
-          unzip -o "games.zip" -d . || true
-          unzip -o "*.zip" -d . || true
-          echo "Listing files..."
-          ls -la
-          find . -name "package.json" | head -10
-
-      - name: Build APK
-        run: |
-          PROJ=$(find . -name "package.json" -type f | grep -v node_modules | head -1 | xargs dirname)
-          echo "Building in folder: $PROJ"
-          if [ -z "$PROJ" ]; then echo "package.json NOT FOUND!"; ls -la; exit 1; fi
-          cd "$PROJ"
+      - run: unzip -o games.zip || unzip -o .github/workflows/games.zip || unzip -o game.zip.zip
+      - run: |
+          cd $(find . -name package.json | head -1 | xargs dirname)
           npm install
-          npm run build || echo "build done"
-          npx cap add android || true
+          npm run build
+          npx cap add android
           npx cap copy android
-          chmod +x android/gradlew
           cd android
+          chmod +x gradlew
           ./gradlew assembleDebug
-
       - uses: actions/upload-artifact@v4
         with:
           name: your-apk
-          path: "**/app-debug.apk"
+          path: '**/app-debug.apk'
