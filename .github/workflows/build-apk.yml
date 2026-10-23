@@ -1,5 +1,4 @@
 name: Build APK
-
 on:
   push:
   workflow_dispatch:
@@ -11,29 +10,29 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-      - uses: actions/setup-java@v4
+          node-version: 24
+      - uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
 
       - name: Unzip and Build
         run: |
-          ls -la
-          unzip -o "game.zip.zip" || unzip -o "game.zip" || unzip -o *.zip
-          DIR=$(find . -name "package.json" -type f | head -1 | xargs dirname)
-          echo "Project at: $DIR"
-          cd "$DIR"
+          rm -rf unzipped
+          unzip -o "game.zip.zip" -d unzipped || unzip -o "game.zip" -d unzipped || unzip -o *.zip -d unzipped
+          PROJECT=$(find unzipped -name "package.json" | head -1 | xargs dirname)
+          echo "Found project: $PROJECT"
+          ls -la "$PROJECT"
+          cd "$PROJECT"
           npm install
-          npm run build
+          npm run build || npm run build:web || echo "no build script, continuing"
           npx cap add android || true
           npx cap copy android
           chmod +x android/gradlew
           cd android
           ./gradlew assembleDebug
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: your-apk
           path: "**/app-debug.apk"
