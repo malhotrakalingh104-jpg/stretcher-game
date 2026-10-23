@@ -16,16 +16,28 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Unzip and Build
+      - name: Find and Unzip Game
         run: |
-          rm -rf unzipped
-          unzip -o "game.zip.zip" -d unzipped || unzip -o "game.zip" -d unzipped || unzip -o *.zip -d unzipped
-          PROJECT=$(find unzipped -name "package.json" | head -1 | xargs dirname)
-          echo "Found project: $PROJECT"
-          ls -la "$PROJECT"
-          cd "$PROJECT"
+          echo "Searching for zip files..."
+          find . -name "*.zip" -type f
+          echo "Unzipping all zips..."
+          find . -name "*.zip" -exec unzip -o {} \;
+          find . -name "*.zip" -exec unzip -o {} -d extracted \; || true
+          unzip -o ".github/workflows/games.zip" -d . || true
+          unzip -o "games.zip" -d . || true
+          unzip -o "*.zip" -d . || true
+          echo "Listing files..."
+          ls -la
+          find . -name "package.json" | head -10
+
+      - name: Build APK
+        run: |
+          PROJ=$(find . -name "package.json" -type f | grep -v node_modules | head -1 | xargs dirname)
+          echo "Building in folder: $PROJ"
+          if [ -z "$PROJ" ]; then echo "package.json NOT FOUND!"; ls -la; exit 1; fi
+          cd "$PROJ"
           npm install
-          npm run build || npm run build:web || echo "no build script, continuing"
+          npm run build || echo "build done"
           npx cap add android || true
           npx cap copy android
           chmod +x android/gradlew
